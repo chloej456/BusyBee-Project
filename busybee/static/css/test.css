@@ -1,0 +1,40 @@
+
+      .navbar-brand {
+          font-size: 1.5rem;
+          font-weight: bold;
+      }
+      .bee-icon {
+          width: 24px;
+          height: 24px;
+          margin-left: 5px;
+      }
+      .search-container {
+          display: flex;
+          gap: 10px;
+      }
+      .search-input-group, .location-input-group {
+          display: flex;
+          align-items: center;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          overflow: hidden;
+      }
+      .search-input-group input, .location-input-group input {
+          border: none;
+          outline: none;
+          padding: 5px;
+          flex: 1;
+      }
+      .input-group-text {
+          background: #f8f9fa;
+          padding: 5px 10px;
+      }
+      .btn-primary {
+          background-color: #ffcc00;
+          border: none;
+          color: black;
+      }
+      .btn-primary:hover {
+          background-color: #e6b800;
+      }
+  

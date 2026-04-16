@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+  <!-- Header -->
+  <div class="d-flex align-items-center mb-4">
+    <h2 class="mb-0">Your Statistics</h2>
+  </div>
+
+  <!-- Stat Cards -->
+  <div class="row text-center mb-5">
+    <div class="col-sm-6 col-md-3 mb-3">
+      <div class="card stat-card" data-metric="followers">
+        <div class="card-body">
+          <h6 class="text-muted">Followers</h6>
+          <h3>{{ follower_count }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3 mb-3">
+      <div class="card stat-card" data-metric="events">
+        <div class="card-body">
+          <h6 class="text-muted">Events Created</h6>
+          <h3>{{ total_events }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3 mb-3">
+      <div class="card stat-card" data-metric="interested">
+        <div class="card-body">
+          <h6 class="text-muted">Interested</h6>
+          <h3>{{ interested_count }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3 mb-3">
+      <div class="card stat-card" data-metric="going">
+        <div class="card-body">
+          <h6 class="text-muted">Going</h6>
+          <h3>{{ going_count }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if labels and followers_ts %}
+  <!-- Overall Trends Chart -->
+  <div class="mb-5">
+    <h4 class="mb-3">Overall Trends</h4>
+    <canvas id="trendChart" height="100"></canvas>
+  </div>
+  {% endif %}
+
+  {% if event_stats %}
+  <!-- Event Engagement -->
+  <div class="mb-5">
+    <h4 class="mb-3">Event Engagement</h4>
+    <div class="row align-items-center mb-3">
+      <div class="col-auto">
+        <label for="eventSelect" class="col-form-label">Choose event:</label>
+      </div>
+      <div class="col">
+        <select id="eventSelect" class="form-select">
+          {% for stat in event_stats %}
+            <option value="{{ forloop.counter0 }}">{{ stat.title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <canvas id="eventChart" height="100"></canvas>
+  </div>
+  {% endif %}
+
+
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const labels      = {{ labels|safe }};
+    const dataMap     = {
+      followers: {{ followers_ts|safe }},
+      events:    {{ events_ts|safe }},
+      interested:{{ interested_ts|safe }},
+      going:     {{ going_ts|safe }}
+    };
+    const titleMap    = {
+      followers: 'Followers Over Time',
+      events:    'Events Created Over Time',
+      interested:'Interested Over Time',
+      going:     'Going Over Time'
+    };
+    const trendCanvas = document.getElementById('trendChart');
+    let trendChart;
+
+    function drawTrend(metric) {
+      const data  = dataMap[metric];
+      const title = titleMap[metric];
+      if (!trendChart) {
+        trendChart = new Chart(trendCanvas.getContext('2d'), {
+          type: 'line',
+          data: { labels: labels, datasets: [{ label: title, data: data, fill: false, tension: 0.3 }] },
+          options: {
+            responsive: true,
+            plugins: { title: { display: true, text: title } },
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+          }
+        });
+      } else {
+        trendChart.data.datasets[0].data = data;
+        trendChart.options.plugins.title.text = title;
+        trendChart.update();
+      }
+    }
+
+    // wire up stat cards
+    document.querySelectorAll('.stat-card').forEach(function(card) {
+      card.addEventListener('click', function() {
+        drawTrend(this.dataset.metric);
+      });
+    });
+    // initial draw
+    if (trendCanvas) { drawTrend('followers'); }
+
+
+    // ——— Event Engagement ———
+    const eventStats = [
+      {% for stat in event_stats %}
+        { title: '{{ stat.title|escapejs }}', going: {{ stat.going }}, interested: {{ stat.interested }} }{% if not forloop.last %}, {% endif %}
+      {% endfor %}
+    ];
+    const eventCanvas = document.getElementById('eventChart');
+    let eventChart;
+
+    function drawEvent(idx) {
+      const es = eventStats[idx];
+      const ctx = eventCanvas.getContext('2d');
+      if (!eventChart) {
+        eventChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['Going', 'Interested'],
+            datasets: [{
+              label: es.title,
+              data: [es.going, es.interested],
+              backgroundColor: ['rgba(75,192,192,0.8)','rgba(255,205,86,0.8)']
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { title: { display: true, text: es.title }, legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+          }
+        });
+      } else {
+        eventChart.data.datasets[0].data       = [es.going, es.interested];
+        eventChart.data.datasets[0].label      = es.title;
+        eventChart.options.plugins.title.text  = es.title;
+        eventChart.update();
+      }
+    }
+
+    const selectEl = document.getElementById('eventSelect');
+    if (selectEl && eventCanvas) {
+      selectEl.addEventListener('change', function(){
+        drawEvent(parseInt(this.value, 10));
+      });
+      drawEvent(0);
+    }
+
+  });
+  </script>
+
+  <style>
+    .stat-card {
+      cursor: pointer;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .stat-card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(0,0,0,0.15);
+    }
+  </style>
+</div>
+{% endblock %}

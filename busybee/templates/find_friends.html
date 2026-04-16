@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="fw-bold text-center mb-5">🔍 Find Friends</h1>
+
+    <div class="row g-4">
+
+        <!-- Friend Requests Section -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm p-4 h-100">
+                <h4 class="mb-3">📩 Friend Requests</h4>
+                {% if received_requests %}
+                    <ul class="list-group">
+                        {% for request in received_requests %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ request.from_user.username }}</strong><br>
+                                    <small class="text-muted">{{ request.from_user.email }}</small>
+                                </div>
+                                <div>
+                                    <form method="post" action="{% url 'handle_friend_request' request.id 'accept' %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button class="btn btn-success btn-sm me-1 rounded-pill">✅ Accept</button>
+                                    </form>
+                                    <form method="post" action="{% url 'handle_friend_request' request.id 'reject' %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button class="btn btn-outline-danger btn-sm rounded-pill">❌ Reject</button>
+                                    </form>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">No incoming requests.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Pending Requests Section -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm p-4 h-100">
+                <h4 class="mb-3">⏳ Pending Requests</h4>
+                {% if sent_requests %}
+                    <ul class="list-group">
+                        {% for request in sent_requests %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ request.to_user.username }}</strong><br>
+                                    <small class="text-muted">{{ request.to_user.email }}</small>
+                                </div>
+                                <div class="d-flex flex-column align-items-end gap-2">
+                                    <span class="badge bg-warning text-dark rounded-pill px-3">Pending</span>
+                                    <form method="post" action="{% url 'cancel_friend_request' request.to_user.id %}">
+                                        {% csrf_token %}
+                                        <button class="btn btn-outline-danger btn-sm rounded-pill px-3">Cancel</button>
+                                    </form>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">You haven’t sent any requests yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Friends List Section -->
+        <div class="col-12">
+            <div class="card shadow-sm p-4">
+                <h4 class="mb-3">👯 Your Friends</h4>
+                {% if friends_list %}
+                    <div class="row row-cols-1 row-cols-md-2 g-3">
+                        {% for friend in friends_list %}
+                            <div class="col">
+                                <div class="d-flex align-items-center justify-content-between border rounded-4 p-3 bg-light shadow-sm">
+                                    <div class="d-flex align-items-center gap-3">
+                                        {% if friend.profile_picture %}
+                                            <img src="{{ friend.profile_picture.url }}" alt="Avatar" class="rounded-circle border" style="width: 40px; height: 40px; object-fit: cover;">
+                                        {% else %}
+                                            <img src="/static/images/Default_Profile_Pic.jpg" alt="Default" class="rounded-circle border" style="width: 40px; height: 40px; object-fit: cover;">
+                                        {% endif %}
+                                        <div>
+                                            <strong>{{ friend.username }}</strong><br>
+                                            <small class="text-muted">{{ friend.email }}</small>
+                                        </div>
+                                    </div>
+                                    <form method="post" action="{% url 'unfriend' friend.id %}">
+                                        {% csrf_token %}
+                                        <button class="btn btn-outline-danger btn-sm rounded-pill">Unfriend</button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">You have no friends yet 🥲</p>
+                {% endif %}
+            </div>
+        </div>
+                <!-- Following Work Users -->
+                {% if user.following.all %}
+                <div class="mt-5">
+                    <h4 class="fw-bold mb-3">🏢 Following</h4>
+                    <div class="row row-cols-1 row-cols-md-2 g-3">
+                        {% for org in user.following.all %}
+                            {% if org.is_work_user %}
+                            <div class="col">
+                                <div class="card h-100 shadow-sm border-0 p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h5 class="fw-bold text-primary">{{ org.company_name|default:org.username }}</h5>
+                                            <p class="mb-1"><strong>Industry:</strong> {{ org.industry|default:"N/A" }}</p>
+                                            <p><strong>Focus:</strong> {{ org.focus_area|default:"N/A" }}</p>
+                                        </div>
+                                        {% if org.profile_picture %}
+                                            <img src="{{ org.profile_picture.url }}" alt="Logo" class="rounded-circle border" style="width: 50px; height: 50px;">
+                                        {% else %}
+                                            <img src="/static/images/Default_Profile_Pic.jpg" alt="Default" class="rounded-circle border" style="width: 50px; height: 50px;">
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+        <!-- People You May Know (NON-work users) -->
+        <div class="col-12">
+            <div class="card shadow-sm p-4">
+                <h4 class="mb-3">✨ People You May Know</h4>
+
+                <!-- Search Bar -->
+                <form method="get" class="input-group mb-4" style="max-width: 600px; margin: 0 auto;">
+                    <input type="text" name="q" class="form-control rounded-start-pill" placeholder="Search users..." value="{{ request.GET.q }}">
+                    <button type="submit" class="btn btn-primary">Search</button>
+                    {% if request.GET.q %}
+                        <a href="{% url 'find_friends' %}" class="btn btn-outline-secondary">Clear</a>
+                    {% endif %}
+                </form>
+
+                {% if potential_friends %}
+                    <div class="row row-cols-1 row-cols-md-2 g-3">
+                        {% for user in potential_friends %}
+                            {% if not user.is_work_user %}
+                                <div class="col">
+                                    <div class="d-flex justify-content-between align-items-center border rounded-4 p-3 shadow-sm bg-white">
+                                        <div>
+                                            <strong>{{ user.username }}</strong><br>
+                                            <small class="text-muted">{{ user.email }}</small>
+                                        </div>
+                                        <form method="post" action="{% url 'send_friend_request' user.id %}">
+                                            {% csrf_token %}
+                                            <button class="btn btn-outline-primary btn-sm rounded-pill">Add Friend</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">No matching users found 🤷‍♀️</p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+
+    <div class="card shadow-sm p-4 mt-5">
+        <h4 class="mb-3 fw-bold">🏢 Featured Organisations</h4>
+        <div class="row row-cols-1 row-cols-md-2 g-4">
+            {% for org in featured_orgs %}
+            <div class="col">
+              <div class="card h-100 shadow-lg border-0 company-card">
+                <div class="card-body d-flex flex-column justify-content-between">
+  
+                  <div>
+                    <h5 class="card-title text-primary fw-bold">
+                      {{ org.company_name|default:org.username }}
+                    </h5>
+                    <p class="mb-1">
+                      <strong class="text-dark-emphasis">Industry:</strong>
+                      {{ org.industry|default:"Not specified" }}
+                    </p>
+                    <p>
+                      <strong class="text-dark-emphasis">Focus:</strong>
+                      {{ org.focus_area|default:"N/A" }}
+                    </p>
+                  </div>
+  
+                  <div class="d-flex align-items-center justify-content-between mt-3">
+                    {% if org.profile_picture %}
+                      <img src="{{ org.profile_picture.url }}" alt="Logo"
+                           class="rounded-circle border"
+                           style="width: 50px; height: 50px; object-fit: cover;">
+                    {% else %}
+                      <img src="/static/images/Default_Profile_Pic.jpg" alt="Default"
+                           class="rounded-circle border"
+                           style="width: 50px; height: 50px; object-fit: cover;">
+                    {% endif %}
+  
+                    <form method="post" action="{% url 'follow_work_user' org.id %}">
+                      {% csrf_token %}
+                      <button class="btn btn-outline-dark rounded-pill px-4 fw-semibold">
+                        Follow
+                      </button>
+                    </form>
+                  </div>
+  
+                </div>
+              </div>
+            </div>
+          {% empty %}
+            <p class="text-muted text-center">No featured organisations to follow.</p>
+          {% endfor %}
+        </div>
+      </div>
+    
+    </div>
+    {% endblock %}
+    

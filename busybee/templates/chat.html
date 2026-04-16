@@ -1,0 +1,36 @@
+<h2>Chat with {{ other_user.username }}</h2>
+<div>
+  {% for message in messages %}
+    <p><strong>{{ message.sender }}:</strong> {{ message.content }} <small>{{ message.timestamp }}</small></p>
+  {% endfor %}
+</div>
+<form method="POST">
+  {% csrf_token %}
+  <input type="text" name="content" placeholder="Type your message..." required>
+  <button type="submit">Send</button>
+</form>
+
+<script>
+  const roomName = "{{ other_user.id }}";
+  const chatSocket = new WebSocket(
+      'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+  );
+
+  chatSocket.onmessage = function(e) {
+      const data = JSON.parse(e.data);
+      document.querySelector('#chat-log').innerHTML += (
+          `<p><b>${data.sender}:</b> ${data.message}</p>`
+      );
+  };
+
+  document.querySelector('#chat-message-submit').onclick = function(e) {
+      const messageInputDom = document.querySelector('#chat-message-input');
+      const message = messageInputDom.value;
+      chatSocket.send(JSON.stringify({
+          'message': message,
+          'sender': "{{ request.user.username }}",
+          'receiver': "{{ other_user.username }}"
+      }));
+      messageInputDom.value = '';
+  };
+</script>

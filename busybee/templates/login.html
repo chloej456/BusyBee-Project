@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %} Sign In/Register {% endblock %}
+
+{% block content %}
+<section class="vh-100 bg-light d-flex justify-content-center align-items-center">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="card shadow border-0">
+                    <div class="card-body p-4">
+                        <h2 class="text-center mb-3">Welcome to BusyBee</h2>
+                        <p class="text-muted text-center mb-4">Please log in or register to continue</p>
+
+                        {% if user.is_authenticated %}
+                        <div class="text-center">
+                            <h4>Welcome back, <a href="#" class="text-decoration-none">{{ user.username }}</a></h4>
+                            <a href="/logout/" class="btn btn-danger mt-3">Logout</a>
+                        </div>
+                        {% else %}
+
+                        {% if messages and request.method == "POST" %}
+                            {% for message in messages %}
+                            <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+                                Invalid username or password.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <form method="POST" action="{% url 'login' %}" class="mb-4">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
+                            </div>
+                            <button type="submit" class="small-btn w-100">Login</button>
+                        </form>
+
+                        <div class="text-center">
+                            <p class="mb-0">New to BusyBee? <a href="{% url 'register' %}" class="text-decoration-none text-primary">Register</a></p>
+                        </div>
+                        {% endif %}
+                        
+                    </div>
+                </div>
+                <div class="text-center mt-3 small">
+                    <p class="text-muted">By continuing, you agree to our <a href="#" class="text-primary">Privacy & Cookie Policy</a> and <a href="#" class="text-primary">Terms & Conditions</a>.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

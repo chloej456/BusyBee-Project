@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+
+      <div class="card shadow-lg p-4">
+        <div class="d-flex align-items-center gap-4 mb-4">
+          {% if profile.profile_picture %}
+            <img src="{{ profile.profile_picture.url }}" class="rounded-circle border border-3 border-primary" width="100" height="100" alt="Profile">
+          {% else %}
+            <img src="{% static 'images/default-avatar.png' %}" class="rounded-circle border border-3 border-primary" width="100" height="100" alt="Default">
+          {% endif %}
+
+          <div>
+            <h3 class="fw-bold mb-0">{{ profile.first_name }} {{ profile.last_name }}</h3>
+            <p class="text-muted">@{{ profile.username }}</p>
+            <span class="badge bg-info text-dark">🏢 Work User</span>
+          </div>
+        </div>
+
+        <hr>
+
+        <div class="mb-4">
+          <p><strong>Industry:</strong> {{ profile.industry|default:"Not specified" }}</p>
+          <p><strong>Focus Area:</strong> {{ profile.focus_area|default:"Not provided" }}</p>
+          <p><strong>Bio:</strong><br>{{ profile.bio|default:"This user has not added a bio yet." }}</p>
+        </div>
+
+        <div class="mb-4">
+          <p><strong>Email:</strong> {{ profile.email }}</p>
+          <p><strong>Phone:</strong> {{ profile.phone_number|default:"Not provided" }}</p>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3">
+          <a href="{% url 'chat_with_user' profile.id %}" class="btn btn-outline-primary">💬 Message</a>
+          {% if profile in user.following.all %}
+            <form method="post" action="{% url 'unfollow_user' profile.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline-danger">🚫 Unfollow</button>
+            </form>
+          {% else %}
+            <form method="post" action="{% url 'follow_user' profile.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline-success">➕ Follow</button>
+            </form>
+          {% endif %}
+        </div>
+
+        <div class="text-center mt-4">
+          <a href="{% url 'work_follows' %}" class="btn btn-link">← Back to Work Follows</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-10">
+
+      <!-- Work User View -->
+      {% if user.is_work_user %}
+        <div class="card p-4 shadow-lg bg-light border border-2 border-primary text-center">
+          <!-- Profile Picture and Basic Info -->
+          <div class="d-flex flex-column align-items-center">
+            {% if user.profile_picture %}
+              <img src="{{ user.profile_picture.url }}" class="rounded-circle border border-3 border-primary mb-3" style="width: 110px; height: 110px; object-fit: cover;" alt="Profile">
+            {% else %}
+              <img src="{% static 'images/default-avatar.png' %}" class="rounded-circle border border-3 border-primary mb-3" style="width: 110px; height: 110px; object-fit: cover;" alt="Default">
+            {% endif %}
+
+            <h3 class="fw-bold text-primary mb-0">{{ user.first_name }} {{ user.last_name }}</h3>
+            <p class="text-muted mb-1">@{{ user.username }}</p>
+            <span class="badge bg-primary-subtle text-primary mb-2">Work Organisation Account</span>
+            <p class="text-muted mb-3" style="font-size: 0.9rem;"><i class="bi bi-envelope"></i> {{ user.email }}</p>
+          </div>
+
+          <hr class="my-4">
+
+          <!-- Stats Grid -->
+          <div class="row g-3 text-center">
+            <div class="col-md-3 col-6">
+              <div class="card p-2 bg-white shadow-sm border-0">
+                <h6 class="text-secondary">📨 Followers</h6>
+                <h3>{{ follower_count }}</h3>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="card p-2 bg-white shadow-sm border-0">
+                <h6 class="text-secondary">📅 Hosted Events</h6>
+                <h3>{{ hosted_events|length }}</h3>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="card p-2 bg-white shadow-sm border-0">
+                <h6 class="text-secondary">⭐ Interested</h6>
+                <h3>{{ interested_count }}</h3>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="card p-2 bg-white shadow-sm border-0">
+                <h6 class="text-secondary">✅ Going</h6>
+                <h3>{{ going_count }}</h3>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sector -->
+          <div class="row mt-4 justify-content-center">
+            <div class="col-md-6 col-12">
+              <div class="card p-2 bg-light border text-center">
+                <h6 class="text-secondary">🏢 Sector</h6>
+                <h5 class="text-dark">{{ user.industry|default:"Not Set" }}</h5>
+              </div>
+            </div>
+          </div>
+
+          <!-- About Section -->
+          <div class="mt-5">
+            <h5 class="fw-bold text-danger mb-3">📌 About This Organisation</h5>
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item"><strong>Industry:</strong> {{ user.industry|default:"Not Set" }}</li>
+              <li class="list-group-item"><strong>Phone:</strong> {{ user.phone_number|default:"Not Provided" }}</li>
+              <li class="list-group-item"><strong>Bio:</strong> {{ user.bio|default:"N/A" }}</li>
+            </ul>
+          </div>
+
+          <!-- Edit Button -->
+          <div class="d-grid gap-2 mt-4">
+            <a href="{% url 'edit_profile' %}" class="btn btn-outline-primary">✏️ Edit Profile</a>
+          </div>
+        </div>
+        {% endif %}
+        
+        <!-- REGULAR USER VIEW -->
+        {% if not user.is_work_user %}
+      <div class="card p-4 shadow-lg border-0 bg-light-subtle mb-4 text-center">
+        <!-- Profile Top -->
+        <div class="d-flex flex-column align-items-center">
+          {% if user.profile_picture %}
+            <img src="{{ user.profile_picture.url }}" class="rounded-circle border border-4 border-primary shadow mb-3" style="width: 110px; height: 110px; object-fit: cover;" alt="Profile">
+          {% else %}
+            <img src="{% static 'images/Default_Profile_Pic.jpg' %}" class="rounded-circle border border-4 border-primary shadow mb-3" style="width: 110px; height: 110px; object-fit: cover;" alt="Default">
+          {% endif %}
+          <h3 class="fw-bold text-dark">{{ user.first_name }} {{ user.last_name }}</h3>
+          <span class="badge bg-primary-subtle text-primary">@{{ user.username }}</span>
+          <p class="text-muted mt-1"><i class="bi bi-envelope"></i> {{ user.email }}</p>
+        </div>
+
+        <!-- Personal Info Grid -->
+        <div class="row mt-4 g-3">
+          <div class="col-md-6">
+            <div class="bg-white rounded p-3 shadow-sm h-100 text-start">
+              <h6 class="fw-semibold text-secondary"><i class="bi bi-telephone-fill me-2"></i>Phone Number</h6>
+              <p class="mb-0">{{ user.phone_number|default:"Not Provided" }}</p>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="bg-white rounded p-3 shadow-sm h-100 text-start">
+              <h6 class="fw-semibold text-secondary"><i class="bi bi-calendar-event me-2"></i>Date of Birth</h6>
+              <p class="mb-0">{{ user.date_of_birth|date:"M d, Y"|default:"Not Provided" }}</p>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="bg-white rounded p-3 shadow-sm text-start">
+              <h6 class="fw-semibold text-secondary"><i class="bi bi-person-lines-fill me-2"></i>Bio</h6>
+              <p class="mb-0">{{ user.bio|default:"No bio added yet." }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Profile Button -->
+        <div class="mt-4">
+          <a href="{% url 'edit_profile' %}" class="btn btn-outline-primary w-100 shadow-sm">✏️ Edit Profile</a>
+        </div>
+      </div>
+
+      <!-- Events Section -->
+      {% if attending_events %}
+      <div class="card p-4 shadow-sm border-0 bg-white mb-4">
+        <h5 class="fw-semibold mb-3 text-start">📅 Events You're Going To</h5>
+        <div class="row row-cols-1 row-cols-md-2 g-3">
+          {% for event in attending_events %}
+            <div class="col">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-start">
+                  <h6 class="fw-bold mb-1">{{ event.title }}</h6>
+                  <p class="mb-0 text-muted"><i class="bi bi-calendar-event"></i> {{ event.date|date:"M d, Y" }}</p>
+                  <p class="mb-0 text-muted"><i class="bi bi-geo-alt"></i> {{ event.location }}</p>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Friends Section -->
+      {% if friends_list %}
+      <div class="card p-4 shadow-sm border-0 bg-white mb-4">
+        <h5 class="fw-semibold mb-3 text-start">👯 Your Circle</h5>
+        <div class="d-flex overflow-auto gap-3 pb-2" style="scroll-snap-type: x mandatory;">
+          {% for friend in friends_list %}
+            <a href="{% url 'chat_with_user' friend.id %}" class="text-decoration-none flex-shrink-0" style="scroll-snap-align: start;">
+              <div class="p-3 bg-light border rounded shadow-sm text-center" style="width: 160px;">
+                {% if friend.profile_picture %}
+                  <img src="{{ friend.profile_picture.url }}" class="rounded-circle mb-2 border border-primary" style="width: 60px; height: 60px; object-fit: cover;" alt="{{ friend.username }}">
+                {% else %}
+                  <img src="{% static 'images/Default_Profile_Pic.jpg' %}" class="rounded-circle mb-2 border border-primary" style="width: 60px; height: 60px; object-fit: cover;" alt="Default">
+                {% endif %}
+                <strong class="d-block text-dark">{{ friend.first_name }}</strong>
+                <small class="text-muted">@{{ friend.username }}</small>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      </div>
+      </div>
+      </div>
+      <!-- Logout -->
+      <div class="text-center mt-4 mb-5">
+        <a href="{% url 'logout' %}" class="btn btn-outline-danger shadow-sm">🚪 Logout</a>
+      </div>
+      {% endif %}
+
+{% endblock %}

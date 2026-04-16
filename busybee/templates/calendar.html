@@ -1,0 +1,430 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+
+
+<!--TEXT BEFORE CALENDAR-->
+<section id="intro-txt">
+    <!--HERO-TEXT-->
+    <div class="intro-box">
+        <div class="intro-txt">
+            <h1>Welcome to your Calendar Page</h1>
+            <h2>Here, you can create new events, view your schedule, see when your friends are free, and much more!</h2>
+        </div>
+    </div>
+    <!--QUICK LINKS-->
+    <div class="calendar-quick-links">
+        <h1>Quick Links</h1>
+        <ul class="quick-links">
+            <li><a href="{% url 'create_event' %}" class="btn btn-outline-success w-100 mb-2">+ Create Event</a></li>
+            {% if request.user.is_work_user %}
+                <li><a href="{% url 'create_work_event' %}" class="btn btn-outline-primary w-100 mb-2">+ Create Work Event</a></li>
+            {% endif %}
+            <li><a href="{% url 'event_discovery' %}" class="btn btn-outline-secondary w-100 mb-2">Discover Events</a></li>
+        </ul>
+    </div>
+</section>
+
+
+<!--
+in order of appearance:
+quick links
+calendar
+event details
+filters
+-->
+
+<!--CALENDAR SECTION-->
+<section id="calendar-container">
+    <div class="calendar">
+    <!--LEFT SIDE-->
+    <div id="left-side">
+        <!--CALENDAR-->
+        <div id="calendar"></div>
+
+            <!-- INVITATIONS -->
+            <div class="invitations bg-white p-4 rounded-3 shadow text-dark">
+                <h2 class="mb-4">Event Invitations</h2>
+                {% if invitations %}
+                    <div class="row row-cols-1 g-3">
+                        {% for invitation in invitations %}
+                            <div class="col">
+                                <div class="card border-0 rounded-4 shadow-sm">
+                                    <div class="card-body text-dark">
+                                        <h5 class="card-title">{{ invitation.event.title }}</h5>
+                                        <p class="card-text mb-2">
+                                            <strong>From:</strong> {{ invitation.sender.username }}<br>
+                                            <strong>When:</strong> {{ invitation.event.start_time|date:"M d, Y H:i" }} - {{ invitation.event.end_time|date:"H:i" }}<br>
+                                            {% if invitation.event.location %}
+                                                <strong>Where:</strong> {{ invitation.event.location }}
+                                            {% endif %}
+                                        </p>
+                                        <form method="POST" action="{% url 'respond_to_invitation' invitation.id %}">
+                                            {% csrf_token %}
+                                            <div class="d-flex gap-2">
+                                                <button type="submit" name="action" value="accept" class="btn btn-success btn-sm flex-fill">
+                                                    Accept
+                                                </button>
+                                                <button type="submit" name="action" value="decline" class="btn btn-outline-danger btn-sm flex-fill">
+                                                    Decline
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-dark">No pending invitations.</p>
+                {% endif %}
+            </div>
+
+
+
+    </div>
+    <!--RIGHT SIDE-->
+    <div id="right-side">
+        <!--EVENT DETAILS-->
+        <div id="event-details">
+            <h2>Event Details</h2>
+            <div class="event-details-txt">
+                <p>Click on an event to see its details here.</p>
+            </div>
+            <!--delete button, hidden at first-->
+            <div class="delete-event-btn">
+                <button id="delete-event-btn" class="btn btn-danger" style="display:none;">Delete Event</button>
+            </div>
+        </div>
+
+        <!--FRIENDS-->
+        <div class="friends">
+            <h2>Your Friends</h2>
+                
+                {% if friends_list %}
+                <div class="row row-cols-1 row-cols-md-2 g-3">
+                    {% for friend in friends_list %}
+                        <div class="col">
+                            <div class="d-flex align-items-center justify-content-between border rounded-4 p-3 bg-light shadow-sm friend-item" data-friend-id="{{ friend.id }}">
+                                <div class="d-flex align-items-center">
+                                    {% if friend.profile_picture %}
+                                        <img src="{{ friend.profile_picture.url }}" class="rounded-circle me-3" width="50" height="50">
+                                    {% else %}
+                                        <img src="/static/images/Default_Profile_Pic.jpg" class="rounded-circle me-3" width="50" height="50">
+                                    {% endif %}
+                                    <div>
+                                        <strong>{{ friend.username }}</strong><br>
+                                        <small class="text-muted">{{ friend.email }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                    <p class="text-muted">You have no friends yet 🥲</p>
+                {% endif %}
+                
+        </div>
+
+    </div>
+    
+    </div>
+    
+    <!-- SUGGESTED TIMES -->
+    <div class="suggested-times container my-5">
+        <div class="card border-0 shadow-lg rounded-4">
+            <div class="card-body">
+                <h2 class="card-title mb-4 text-primary">Suggested Events</h2>
+                <div id="suggested-times-list" class="mt-3">
+                    <!-- javascript goes here -->
+                    <p class="text-muted">Click on a friend to see events you could go to together.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+
+    <input type="hidden" name="csrfmiddlewaretoken" value="${csrf}">
+    <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+</section>
+
+<br><br>
+<br><br>
+<br><br>
+<br><br>
+
+<!--DISPLAY EVENT INFORMATION-->
+<script>
+    const csrf = document.getElementById("csrf-token").value;
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today addEvent',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            // create event button
+            customButtons: {
+                addEvent: {
+                    text: ' +',
+                    click: function() {
+                        window.location.href = "{% url 'create_event' %}";
+                    }
+                }
+            },
+    
+            // Load events passed from the backend (including friends' events)
+            events: JSON.parse('{{ events|escapejs }}'),
+    
+            // event click handler (for showing event details)
+            eventClick: function(info) {
+                // stores the clicked event
+                window.currentEvent = info.event;
+                const details = document.getElementById('event-details');
+                
+                const isOwner = info.event.extendedProps.is_owner;
+                const isViewingOwnCalendar = info.event.extendedProps.is_viewing_own_calendar;
+                // get current user info
+                const currentUsername = "{{ request.user.username }}";
+                const attendeesList = info.event.extendedProps.attendees || [];
+
+                // assemble HTML
+                let html = `
+                    <h5>${info.event.title}</h5>
+                    <p><strong>Start:</strong> ${info.event.start.toLocaleString()}</p>
+                    <p><strong>End:</strong> ${info.event.end ? info.event.end.toLocaleString() : 'N/A'}</p>
+                    <p><strong>Location:</strong> ${info.event.extendedProps.category || 'N/A'}</p>
+                    <p><strong>Attendees:</strong> ${attendeesList.join(", ") || 'N/A'}</p>
+                `;
+            
+                // if the event is owned by this user, show delete button
+                if (isViewingOwnCalendar && isOwner) {
+                    html += `
+                        <form method="POST" action="/delete_event/${info.event.id}/">
+                            <input type="hidden" name="csrfmiddlewaretoken" value="${csrf}">
+                            <button type="submit" class="btn btn-danger mt-2">Delete Event</button>
+                        </form>
+                    `;
+                }
+
+                // if an attendee, show leave event button
+                else if (isViewingOwnCalendar && attendeesList.includes(currentUsername) && !isOwner) {
+                    html += `
+                        <button class="btn btn-warning mt-2" onclick="leaveEvent(${info.event.id})">
+                            Leave Event
+                        </button>
+                    `;
+                }
+
+                
+            
+                details.innerHTML = html;
+            }
+        });
+    
+        calendar.render();
+
+        // leave event (for attendees)
+        window.leaveEvent = function(eventId) {
+            fetch(`/leave_event/${eventId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrf,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('You have left the event.');
+                    // remove the event from the calendar
+                    if (window.currentEvent) {
+                        window.currentEvent.remove();
+                        window.currentEvent = null;
+                    }
+                } else {
+                    alert('Error: Unable to leave the event.');
+                }
+            });
+        };
+        
+    
+        // show friends events
+        var activeFriends = {}; // store active friend events
+        function loadFriendEvents(friendId, friendElement) {
+            if (activeFriends[friendId]) {
+                // if friend is already displayed, remove events and unhighlight
+                activeFriends[friendId].remove();
+                delete activeFriends[friendId];
+                friendElement.classList.remove('highlighted');
+            } else {
+                // fetch and display friend's events
+                fetch(`/get_friend_events/${friendId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                        return;
+                    }
+    
+                    // display events and highlight friend
+                    activeFriends[friendId] = calendar.addEventSource(data);  // add friend's events to the calendar
+                    friendElement.classList.add('highlighted');
+                })
+                .catch(error => console.error('Error fetching friend events:', error));
+            }
+        }
+
+        let selectedFriends = new Set();
+    
+        // attach click event to each friend in the list
+        document.querySelectorAll('.friend-item').forEach(friend => {
+            friend.style.cursor = "pointer"; // change cursor to pointer
+            friend.addEventListener('click', function() {
+                // highlighting friends
+                let friendId = this.dataset.friendId;
+                loadFriendEvents(friendId, this);  // load events of that specific friend
+                
+                // suggested times functionality
+                if (selectedFriends.has(friendId)) {
+                    selectedFriends.delete(friendId);
+                    this.classList.remove('selected-friend');
+                } else {
+                    selectedFriends.add(friendId);
+                    this.classList.add('selected-friend');
+                }
+                updateSuggestedTimes();
+            });
+        });
+
+        async function updateSuggestedTimes() {
+            const container = document.getElementById('suggested-times-list');
+            container.innerHTML = '<div class="loading-spinner"></div>';
+
+            try {
+                const response = await fetch('/get_suggested_times/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrf,
+                    },
+                    body: JSON.stringify({ friends: Array.from(selectedFriends) }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.suggestions.length === 0) {
+                    renderNoResults();
+                } else {
+                    renderSuggestedTimes(data);
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        Error loading suggestions. Please try again later.
+                    </div>
+                `;
+            }
+        }
+
+        function renderNoResults() {
+            const container = document.getElementById('suggested-times-list');
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    <h5>No Matching Events Found</h5>
+                    <p>We couldn't find any events that match everyone's schedules.</p>
+                    <p>Try selecting different friends or expanding your search range.</p>
+                </div>
+            `;
+        }
+
+        function renderSuggestedTimes(data) {
+            const container = document.getElementById('suggested-times-list');
+            container.innerHTML = data.suggestions.length ? '' : '<p class="text-muted">No suggested events found</p>';
+        
+            data.suggestions.forEach(suggestion => {
+                const start = new Date(suggestion.start).toLocaleString('en-IE', {
+                    weekday: 'short', 
+                    month: 'short', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                const end = new Date(suggestion.end).toLocaleTimeString('en-IE', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+        
+                const timeSlot = document.createElement('div');
+                timeSlot.className = 'suggestion-item mb-4 p-3 border rounded bg-white';
+                timeSlot.innerHTML = `
+                    <div class="time-range mb-3">
+                        <h5 class="text-primary mb-1">${start}</h5>
+                        <small class="text-muted">to ${end}</small>
+                    </div>
+                    <div class="events">
+                        ${suggestion.events.map(event => `
+                            <a href="${event.url}" class="event-item d-block p-3 mb-3 rounded shadow-sm">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong class="d-block mb-1">${event.title}</strong>
+                                        <small class="text-muted">
+                                            ${new Date(event.time).toLocaleTimeString([], { 
+                                                hour: '2-digit', 
+                                                minute: '2-digit'
+                                            })}
+                                            <span class="badge ${event.source === 'Ticketmaster' ? 'bg-danger' : 'bg-primary'} ms-2">
+                                                ${event.source}
+                                            </span>
+                                        </small>
+                                    </div>
+                                    <i class="bi bi-arrow-up-right"></i>
+                                </div>
+                            </a>
+                        `).join('')}
+                    </div>
+                `;
+                container.appendChild(timeSlot);
+            });
+        }
+    
+        // FILTER
+        document.getElementById('apply-filters').addEventListener('click', function () {
+            var category = document.getElementById('filter-category').value;
+            var time = document.getElementById('filter-time').value;
+    
+            calendar.getEvents().forEach(event => {
+                let showEvent = true;
+    
+                // default is personal
+                let eventCategory = event.extendedProps.category || event.category || 'personal';
+                // category filter
+                if (category !== 'all' && eventCategory !== category) {
+                    showEvent = false;
+                }
+    
+                // time filter
+                if (time === 'today' && !event.start.toISOString().startsWith(new Date().toISOString().split('T')[0])) {
+                    showEvent = false;
+                }
+    
+                event.setProp('display', showEvent ? 'auto' : 'none');
+            });
+        });
+    });
+
+
+
+</script>
+
+{% endblock %}
+

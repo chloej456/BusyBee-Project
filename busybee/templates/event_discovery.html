@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+
+{% block title %}Event Discovery{% endblock %}
+
+{% block content %}
+
+<section id="event-discovery" class="py-5">
+    <div class="container">
+        <h1 class="text-center">Discover Events</h1>
+
+        <!-- Filter Section -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="shadow-sm p-3 rounded bg-light">
+                    <h5 class="txt">Filter Events</h5>
+                    <form id="filter-form">
+                        <!-- Event Type -->
+                        <label for="event-type" class="form-label">Event Type</label>
+                        <select id="event-type" class="form-select mb-3">
+                            <option value="">All</option>
+                            <option value="Music">Music</option>
+                            <option value="Sports">Sports</option>
+                            <option value="Arts & Theatre">Arts & Theatre</option>
+                            <option value="Film">Film</option>
+                        </select>
+
+                        <!-- Location -->
+                        <label for="location" class="form-label" >City</label>
+                        <input type="text" id="location" class="form-control mb-3" placeholder="Enter city" value="Dublin">
+
+                        <!-- Date Range -->
+                        <label for="start-date" class="form-label">Start Date</label>
+                        <input type="date" id="start-date" class="form-control mb-3">
+                        <label for="end-date" class="form-label">End Date</label>
+                        <input type="date" id="end-date" class="form-control mb-3">
+
+                        <!-- Accessibility -->
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="accessible-events">
+                            <label class="form-check-label" for="accessible-events">Accessible Events Only</label>
+                        </div>
+
+                        <!-- Apply Filters Button -->
+                        <button type="button" class="small-btn w-100" id="apply-filters">Apply Filters</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Events Section -->
+            <div class="col-md-9">
+                <div id="events-list" class="row">
+                    <p class="text-muted text-center">Loading events...</p>
+                </div>
+
+                <!-- Pagination -->
+                <div class="col-12">
+                    <nav aria-label="Event pagination">
+                        <ul class="pagination justify-content-center mt-4" id="pagination-container">
+                            <!-- Page buttons will appear here -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    
+</section>
+
+
+<script>
+    const CURRENT_USERNAME = "{{ request.user.username|escapejs }}";
+
+    // get the CSRF token for django from meta tag 
+    const getCsrfTokenFromMeta = () => {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    };
+
+    // render an event card
+    const renderEventCard = (event, container, interestInfo = {}) => {
+        // filter out current user from lists
+        const allInterested = interestInfo.interested || [];
+        const allGoing = interestInfo.going || [];
+        const friendInterested = allInterested.filter(user => user !== CURRENT_USERNAME);
+        const friendGoing = allGoing.filter(user => user !== CURRENT_USERNAME);
+
+        let detailUrl = `/event_discovery/event_details/${event.id}`;
+        if (event.type === 'work_event') {
+            detailUrl = `/event/work/${event.id}/`;
+        }
+
+        const interestedText = friendInterested.length
+            ? `<p><strong>Interested:</strong> ${friendInterested.join(", ")}</p>`
+            : "";
+
+        const goingText = friendGoing.length
+            ? `<p><strong>Going:</strong> ${friendGoing.join(", ")}</p>`
+            : "";
+        
+        let category = event.category ? `Category: ${event.category}` : '';
+        let description = event.description ? `<p>${event.description}</p>` : '';
+
+        const cardHTML = `
+            <div class="col-md-4 mb-4">
+                <div class="card shadow-sm">
+                    <img src="${event.images[0].url || '/static/default-event.png'}" class="card-img-top" alt="${event.name}">
+                    <div class="card-body">
+                        <h5 class="card-title">${event.name}</h5>
+                        ${category}
+                        ${description}
+                        <p class="card-text">
+                            📅 <strong>Date:</strong> ${event.dates.start.localDate} <br>
+                            📍 <strong>Location:</strong> ${event._embedded.venues[0].name} <br>
+                        </p>
+                        ${interestedText}
+                        ${goingText}
+                        <a href="${detailUrl}" class="small-btn">View Details</a>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.innerHTML += cardHTML;
+    };
+
+    // render events with user interest info
+    const renderAllEventsWithInterest = (events) => {
+        const eventsList = document.getElementById('events-list');
+        const eventIds = events.map(event => event.id);
+
+        fetch('/api/event_interest_data/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfTokenFromMeta() // CSRF token for django from meta tag
+            },
+            body: JSON.stringify({ event_ids: eventIds })
+        })
+        .then(response => response.json())
+        .then(interestData => {
+            const interestMap = interestData.data;
+            events.forEach(event => renderEventCard(event, eventsList, interestMap[event.id]));
+        })
+        .catch(err => {
+            console.error("Error fetching interest info:", err);
+            events.forEach(event => renderEventCard(event, eventsList, {}));
+        });
+    };
+
+
+    // fetch events and apply filters and pagination
+    document.addEventListener('DOMContentLoaded', () => {
+        const fetchEvents = () => {
+            let url = '/api/events/?size=50';
+
+            const eventType = document.getElementById('event-type').value;
+            const location = document.getElementById('location').value;
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const accessibleOnly = document.getElementById('accessible-events').checked;
+
+            if (eventType) url += `&classificationName=${eventType}`;
+            if (location) url += `&city=${location}`;
+            if (startDate) url += `&startDateTime=${startDate}T00:00:00Z`;
+            if (endDate) url += `&endDateTime=${endDate}T23:59:59Z`;
+            if (accessibleOnly) url += `&includeAccessible=true`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const eventsList = document.getElementById('events-list');
+                    const paginationContainer = document.getElementById('pagination-container');
+                    eventsList.innerHTML = '';
+                    paginationContainer.innerHTML = '';
+
+                    if (data._embedded && data._embedded.events) {
+                        const allEvents = data._embedded.events;
+                        const totalEvents = allEvents.length;
+
+                        if (totalEvents <= 12) {
+                            renderAllEventsWithInterest(allEvents);
+                        } else {
+                            const eventsPerPage = 12;
+                            let currentPage = 1;
+                            const totalPages = Math.ceil(totalEvents / eventsPerPage);
+
+                            const renderPage = (page) => {
+                                eventsList.innerHTML = '';
+                                const startIndex = (page - 1) * eventsPerPage;
+                                const paginatedEvents = allEvents.slice(startIndex, startIndex + eventsPerPage);
+                                renderAllEventsWithInterest(paginatedEvents);
+                            };
+
+                            const renderPagination = () => {
+                                paginationContainer.innerHTML = '';
+                                for (let i = 1; i <= totalPages; i++) {
+                                    const li = document.createElement('li');
+                                    li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                                    li.innerHTML = `<button class="page-link">${i}</button>`;
+                                    li.addEventListener('click', () => {
+                                        currentPage = i;
+                                        renderPage(currentPage);
+                                        renderPagination();
+
+                                        // scroll to top of event list on page change
+                                        const eventsSection = document.getElementById('events-list');
+                                        if (eventsSection) {
+                                            eventsSection.scrollIntoView({ behavior: 'smooth' });
+                                        }
+                                    });
+                                    paginationContainer.appendChild(li);
+                                }
+                            };
+
+                            renderPage(currentPage);
+                            renderPagination();
+                        }
+                    } else {
+                        eventsList.innerHTML = '<p class="text-muted">No events found.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching events:', error);
+                    document.getElementById('events-list').innerHTML = '<p class="text-danger">Failed to load events.</p>';
+                });
+        };
+
+        document.getElementById('apply-filters').addEventListener('click', fetchEvents);
+        fetchEvents();
+    });
+</script>
+
+
+{% endblock %}
+

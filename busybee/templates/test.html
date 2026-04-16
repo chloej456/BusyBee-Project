@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}Search Results{% endblock %}
+
+{% block content %}
+<section id="search-results" class="py-5">
+  <div class="container">
+    <h1 class="text-center mb-4">
+      Search Results for <span class="fw-bold">"{{ query }}"</span>
+      {% if location %}<span class="text-muted">in {{ location }}</span>{% endif %}
+    </h1>
+
+    <div id="events-list" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+      <p class="text-muted text-center">Loading events...</p>
+    </div>
+
+    <nav aria-label="Pagination">
+      <ul class="pagination justify-content-center mt-4" id="pagination-container">
+      </ul>
+    </nav>
+  </div>
+
+  <meta name="csrf-token" content="{{ csrf_token }}">
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const params        = new URLSearchParams(window.location.search);
+  const query         = params.get('query')    || '';
+  const date          = params.get('date')     || '';
+  const locationParam = params.get('location') || '';
+  const listEl        = document.getElementById('events-list');
+  const pagerEl       = document.getElementById('pagination-container');
+  const perPage       = 12;
+  let allEvents       = [];
+  let currentPage     = 1;
+
+  function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')
+           .getAttribute('content');
+  }
+
+  function buildUrl() {
+    let url = "{% url 'search_results' %}?size=50";
+    if (query)         url += `&classificationName=${encodeURIComponent(query)}`;
+    if (locationParam) url += `&city=${encodeURIComponent(locationParam)}`;
+    if (date) {
+      url += `&startDateTime=${date}T00:00:00Z`;
+      url += `&endDateTime=${date}T23:59:59Z`;
+    }
+    return url;
+  }
+
+  function renderEventCard(event) {
+    const detailUrl = event.source === 'work_event'
+      ? `{% url 'work_event_details' 'REPLACE_ID' %}`.replace('REPLACE_ID', event.id)
+      : `{% url 'tm_event_detail'   'REPLACE_ID' %}`.replace('REPLACE_ID', event.id);
+
+    const col = document.createElement('div');
+    col.className = 'col';
+    col.innerHTML = `
+      <div class="card shadow-sm h-100">
+        <img src="${event.image}" class="card-img-top" alt="${event.name}">
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title">${event.name}</h5>
+          <p class="card-text mb-2">
+            📅 <strong>Date:</strong> ${event.date}<br>
+            📍 <strong>Location:</strong> ${event.venue}, ${event.city}
+          </p>
+          <a href="${detailUrl}" class="btn btn-primary mt-auto">
+            View Details
+          </a>
+        </div>
+      </div>
+    `;
+    listEl.appendChild(col);
+  }
+
+  function renderPage(page) {
+    listEl.innerHTML = '';
+    const start = (page - 1) * perPage;
+    allEvents
+      .slice(start, start + perPage)
+      .forEach(renderEventCard);
+    window.scrollTo({ top: listEl.offsetTop - 20, behavior: 'smooth' });
+  }
+
+  function renderPagination() {
+    pagerEl.innerHTML = '';
+    const totalPages = Math.ceil(allEvents.length / perPage);
+    for (let i = 1; i <= totalPages; i++) {
+      const li = document.createElement('li');
+      li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+      li.innerHTML = `<button class="page-link">${i}</button>`;
+      li.addEventListener('click', () => {
+        currentPage = i;
+        renderPage(currentPage);
+        renderPagination();
+      });
+      pagerEl.appendChild(li);
+    }
+  }
+
+  fetch(buildUrl(), {
+    headers: { 'X-CSRFToken': getCsrfToken() }
+  })
+    .then(r => r.json())
+    .then(data => {
+      const events = (data._embedded && data._embedded.events) || [];
+      if (events.length) {
+        allEvents = events;
+        renderPage(currentPage);
+        renderPagination();
+      } else {
+        listEl.innerHTML = '<p class="text-muted text-center">No events found.</p>';
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      listEl.innerHTML = '<p class="text-danger text-center">Failed to load events.</p>';
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - BusyBee{% endblock %}
+{% load static %}
+
+{% block content %}
+<!-- HERO SECTION -->
+<section id="hero-pic" class="position-relative">
+  <div class="container-fluid p-0">
+    <div class="hero-image d-flex align-items-center justify-content-center text-center position-relative"
+         style="height: 70vh; background: url('/static/images/IndexHome.png') no-repeat center center/cover;">
+
+        <!-- Content -->
+        <div class="content text-light position-relative text-center" style="z-index: 2;">
+        <h1 class="display-3 fw-bold">Experience More. Plan Less.</h1>
+
+        <!-- Call to Action Button -->
+        <button>
+          <a href="#events" class="button">Discover Events</a>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- EVENTS SECTION -->
+<section id="events" class="py-5 bg-light">
+  <div class="container">
+    <h2 class="fw-bold text-center mb-5">Featured Events</h2>
+
+    <!-- Section 1: Top Trending -->
+    <div class="col-12 mb-5" >
+      <h3 class="fw-bold">Top Trending Events</h3>
+      <div id="top-trending" class="carousel slide"  data-bs-ride="carousel">
+        <div class="carousel-inner" id="top-trending-cards"></div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#top-trending" data-bs-slide="prev">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#top-trending" data-bs-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Next</span>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Section 3: Events Near You -->
+    <div class="col-12 mb-5">
+      <h3 class="fw-bold">Events Near You</h3>
+      <div id="nearby-events" class="carousel slide" data-bs-ride="carousel">
+        <div class="carousel-inner" id="nearby-events-cards"></div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#nearby-events" data-bs-slide="prev">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#nearby-events" data-bs-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Next</span>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Section 4: Editor's Picks -->
+    <div class="col-12 mb-5">
+      <h3 class="fw-bold">Sports</h3>
+      <div id="editors-picks" class="carousel slide" data-bs-ride="carousel">
+        <div class="carousel-inner" id="editors-picks-cards"></div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#editors-picks" data-bs-slide="prev">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#editors-picks" data-bs-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Next</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<script>
+  // API 
+ const apiBaseUrl = 'https://app.ticketmaster.com/discovery/v2/';
+ const apiKey = 'hsfFk7nwLSnSpXHRX8LnjTtHeIAaMiCP';
+ 
+ // function to fetch events and process them
+ async function fetchEvents(apiBaseUrl, queryParams, elementId, filterCallback) {
+    const queryString = new URLSearchParams({
+        apikey: apiKey,
+        ...queryParams,
+    }).toString();
+
+    const apiUrl = `${apiBaseUrl}events.json?${queryString}`;
+
+    try {
+        const response = await fetch(apiUrl);
+
+        if (!response.ok) {
+            throw new Error(`Error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const events = data._embedded?.events || [];
+        const filteredEvents = filterCallback ? filterCallback(events) : events;
+
+        const targetElement = document.getElementById(elementId);
+
+        if (filteredEvents.length > 0) {
+            const groupedEvents = [];
+            for (let i = 0; i < filteredEvents.length; i += 3) {
+                groupedEvents.push(filteredEvents.slice(i, i + 3));
+            }
+
+            const eventsHtml = groupedEvents.map((group, index) => `
+                <div class="carousel-item ${index === 0 ? 'active' : ''}">
+                    <div class="d-flex justify-content-center align-items-stretch">
+                        ${group
+                            .map(event => `
+                                <div class="card event-card mx-2 shadow">
+                                    <img src="${event.images?.[0]?.url || '/static/images/default-event.jpg'}" class="card-img-top" alt="${event.name}">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <span class="badge bg-primary me-2">${event.rank || ''}</span>
+                                            ${event.name}
+                                        </h5>
+                                        <p class="card-text">${event.dates.start.localDate}</p>
+                                        <a href="${event.url}" target="_blank" class="small-btn">View Details</a>
+                                    </div>
+                                </div>
+                            `)
+                            .join('')}
+                    </div>
+                </div>
+            `).join('');
+            targetElement.innerHTML = eventsHtml;
+        } else {
+            targetElement.innerHTML = '<p class="text-muted">No events found.</p>';
+        }
+    } catch (error) {
+        console.error(error);
+        const targetElement = document.getElementById(elementId);
+        targetElement.innerHTML = `<p class="text-danger">Error fetching events: ${error.message}</p>`;
+    }
+}
+
+
+ // Fetch events for "Top Trending"
+ fetchEvents(apiBaseUrl, { city: 'Dublin', size: 15 }, 'top-trending-cards', events => {
+    return events.map((event, index) => {
+        // Add the index as a property for numbering
+        event.rank = index + 1;
+        return event;
+    });
+});
+
+ // Fetch events for Under €50
+ fetchEvents(apiBaseUrl, { city: 'Dublin', size: 9 }, 'under-50-cards', events =>
+    events.filter(event => {
+        const priceRange = event.priceRanges?.[0];
+        return priceRange && priceRange.min <= 50
+    })
+);
+ 
+ // Fetch events for "Events Near You" (replace with dynamic location if needed)
+ fetchEvents(apiBaseUrl, { city: 'Dublin', size: 15 }, 'nearby-events-cards');
+ 
+// Fetch events for "Editor's Picks"
+fetchEvents(apiBaseUrl, { city: 'Dublin', classificationName: 'sports' }, 'editors-picks-cards');
+ </script>
+ 
+{% endblock %}

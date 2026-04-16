@@ -1,0 +1,17 @@
+<form id="payment-form">
+    <div id="card-element">
+        <!-- a stripe element will be inserted here -->
+    </div>
+
+    <!-- used to display form errors -->
+    <div id="card-errors" role="alert"></div>
+
+    <button id="submit" class="btn btn-primary">Pay</button>
+</form>
+
+<script>
+    var stripe = Stripe("{{ STRIPE_TEST_PUBLIC_KEY }}");
+    var elements = stripe.elements();
+    var card = elements.create("card");
+    card.mount("#card-element");
+</script>

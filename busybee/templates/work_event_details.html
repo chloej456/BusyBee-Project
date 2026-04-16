@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% block title %}{{ event.title }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    {% if error %}
+        <div class="alert alert-danger text-center">
+            <h4>{{ error }}</h4>
+        </div>
+    {% else %}
+        <!-- Event Display -->
+        <div class="row align-items-start g-4">
+            <div class="col-md-6">
+                {% if event.image %}
+                    <img src="{{ event.image.url }}" class="img-fluid rounded shadow" alt="{{ event.title }}">
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <h2 class="fw-bold mb-3">{{ event.title }}</h2>
+
+                <!--date & check if event repeats-->
+                <ul class="list-unstyled text-muted fs-5">
+                    <li><strong>📅 Date:</strong>
+                        {% if event.repeat_frequency != 'none' and event.repeat_end_date %}
+                            {% if event.event_type == 'all_day' %}
+                                {{ event.all_day_start|date:"M d, Y" }} - {{ event.repeat_end_date|date:"M d, Y" }}
+                            {% else %}
+                                {{ event.timed_start|date:"M d, Y H:i" }} - {{ event.repeat_end_date|date:"M d, Y" }}
+                            {% endif %}
+                            , {{ event.get_repeat_frequency_display }}
+                        {% else %}
+                            {% if event.event_type == 'all_day' %}
+                                {{ event.all_day_start|date:"M d, Y" }} - {{ event.all_day_end|date:"M d, Y" }}
+                            {% else %}
+                                {{ event.timed_start|date:"M d, Y H:i" }} - {{ event.timed_end|date:"M d, Y H:i" }}
+                            {% endif %}
+                        {% endif %}
+                    </li>
+
+                    <li><strong>📍 Location:</strong> {{ event.location }}</li>
+                    {% if event.price %}
+                        <li><strong>💰 Price:</strong> {{ event.price }} {{ event.currency }}</li>
+                    {% endif %}
+                </ul>
+
+                <div class="mb-3">
+                    <h5>📝 Description:</h5>
+                    <p class="text-muted">{{ event.description }}</p>
+                </div>
+
+                <a href="{{ event.ticket_url|default:'#' }}" target="_blank" class="small-btn">Buy Tickets</a>
+            </div>
+        </div>
+
+        <!-- User Action Buttons -->
+        <div class="mt-5 p-4 bg-light rounded shadow-sm">
+            <h4 class="fw-semibold mb-2">🎯 Are you Interested or Going?</h4>
+            <p class="text-muted">Let your friends know and discover who's joining!</p>
+
+            {% if user.is_authenticated %}
+                <div class="d-flex gap-3 flex-wrap">
+                    {% if user_status == "interested" %}
+                        <span class="text-success">✔️ You're marked as Interested.</span>
+                    {% else %}
+                        <button class="btn btn-outline-warning" id="btn-interest" data-event-id="work-{{ event.id }}">
+                            ⭐ Mark as Interested
+                        </button>
+                    {% endif %}
+
+                    {% if user_status == "going" %}
+                        <span class="text-success">✔️ You're marked as Going.</span>
+                    {% else %}
+                        <button class="btn btn-success" id="btn-going" data-event-id="work-{{ event.id }}">
+                            ✅ Mark as Going
+                        </button>
+                    {% endif %}
+                </div>
+            {% else %}
+                <p class="text-muted mt-2">🔐 Please <a href="{% url 'login' %}">log in</a> to mark your interest or attendance.</p>
+            {% endif %}
+        </div>
+
+        <!-- Friends' Interest Section -->
+        <div class="mt-5 row g-4">
+            <div class="col-md-6">
+                <div class="p-3 border rounded shadow-sm">
+                    <h5>👀 Friends Interested:</h5>
+                    {% if friends_interested %}
+                        <ul class="list-group list-group-flush">
+                            {% for friend in friends_interested %}
+                                <li class="list-group-item">{{ friend.user.username }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">Nobody's marked as interested yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="p-3 border rounded shadow-sm">
+                    <h5>🎉 Friends Going:</h5>
+                    {% if friends_going %}
+                        <ul class="list-group list-group-flush">
+                            {% for friend in friends_going %}
+                                <li class="list-group-item">{{ friend.user.username }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">Nobody's marked as going yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const updateEventStatus = (status, eventId) => {
+            return fetch('/event/status/', {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ event_id: eventId, status: status })
+            }).then(response => response.json());
+        };
+
+        const interestBtn = document.getElementById("btn-interest");
+        const goingBtn = document.getElementById("btn-going");
+
+        if (interestBtn) {
+            interestBtn.addEventListener("click", function () {
+                const btn = this;
+                updateEventStatus("interested", btn.dataset.eventId).then(data => {
+                    if (data.success) {
+                        btn.outerHTML = `<span class="text-success">✔️ You're marked as Interested.</span>`;
+                    } else {
+                        alert("Error: " + data.message);
+                    }
+                }).catch(err => console.error("Error:", err));
+            });
+        }
+
+        if (goingBtn) {
+            goingBtn.addEventListener("click", function () {
+                const btn = this;
+                fetch('/event/going/', {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    body: JSON.stringify({ event_id: btn.dataset.eventId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        btn.outerHTML = `<span class="text-success">✔️ You're marked as Going.</span>`;
+                    } else {
+                        alert("Error: " + data.message);
+                    }
+                })
+                .catch(err => console.error("Error:", err));
+            });
+        }
+    });
+</script>
+{% endblock %}

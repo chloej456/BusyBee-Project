@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section id="settings-container" class="py-5">
+    <div class="container">
+        <h1 class="mb-4 text-primary text-center">Account Settings</h1>
+        <div class="row">
+            <!-- Sidebar Navigation -->
+            <div class="col-md-3">
+                <div class="list-group shadow-sm">
+                    <a href="#profile-settings" class="list-group-item list-group-item-action active" data-bs-toggle="list">Profile</a>
+                    <a href="#notification-settings" class="list-group-item list-group-item-action" data-bs-toggle="list">Notifications</a>
+                    <a href="#password-settings" class="list-group-item list-group-item-action" data-bs-toggle="list">Password</a>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9">
+                <div class="tab-content shadow-sm p-4 bg-light rounded">
+                    <!-- Profile Settings -->
+                    <div id="profile-settings" class="tab-pane fade show active">
+                        <h4 class="text-primary">Profile Settings</h4>
+                        <form>
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="username" value="YourUsername" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email Address</label>
+                                <input type="email" class="form-control" id="email" value="your.email@example.com" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Phone Number</label>
+                                <input type="text" class="form-control" id="phone" value="123-456-7890">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </form>
+                    </div>
+
+                    <!-- Notification Settings -->
+                    <div id="notification-settings" class="tab-pane fade">
+                        <h4 class="text-primary">Notification Settings</h4>
+                        <form>
+                            <div class="form-check mb-3">
+                                <input type="checkbox" class="form-check-input" id="email-notifications" checked>
+                                <label class="form-check-label" for="email-notifications">Email Notifications</label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input type="checkbox" class="form-check-input" id="sms-notifications">
+                                <label class="form-check-label" for="sms-notifications">SMS Notifications</label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input type="checkbox" class="form-check-input" id="event-reminders" checked>
+                                <label class="form-check-label" for="event-reminders">Event Reminders</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Update Notifications</button>
+                        </form>
+                    </div>
+
+                    <!-- Password Settings -->
+                    <div id="password-settings" class="tab-pane fade">
+                        <h4 class="text-primary">Change Password</h4>
+                        <form>
+                            <div class="mb-3">
+                                <label for="current-password" class="form-label">Current Password</label>
+                                <input type="password" class="form-control" id="current-password" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="new-password" class="form-label">New Password</label>
+                                <input type="password" class="form-control" id="new-password" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="confirm-password" class="form-label">Confirm New Password</label>
+                                <input type="password" class="form-control" id="confirm-password" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Change Password</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+  <h2 class="fw-bold text-center mb-4">🏢 Work Users You Follow</h2>
+
+  {% if user.following.all %}
+    <div class="row g-4 justify-content-center">
+      {% for org in user.following.all %}
+        {% if org.is_work_user %}
+        <div class="col-md-6 col-lg-4">
+          <div class="card shadow-sm border-0 p-3 h-100 d-flex flex-column justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+              {% if org.profile_picture %}
+                <img src="{{ org.profile_picture.url }}" class="rounded-circle border border-2" width="60" height="60" alt="Profile">
+              {% else %}
+                <img src="{% static 'images/default-avatar.png' %}" class="rounded-circle border border-2" width="60" height="60" alt="Default">
+              {% endif %}
+              <div>
+                <h5 class="fw-bold mb-0">{{ org.first_name }} {{ org.last_name }}</h5>
+                <small class="text-muted">@{{ org.username }}</small>
+              </div>
+            </div>
+            <hr>
+            <div class="mb-2">
+              <p class="mb-1"><strong>Industry:</strong> {{ org.industry|default:'N/A' }}</p>
+              <p class="mb-1"><strong>Focus Area:</strong> {{ org.focus_area|default:'N/A' }}</p>
+              <p class="mb-0"><strong>Bio:</strong> {{ org.bio|default:'N/A' }}</p>
+            </div>
+            <div class="d-flex justify-content-between gap-2">
+              <a href="{% url 'chat_with_user' org.id %}" class="btn btn-sm btn-outline-primary w-50">💬 Message</a>
+              <a href="{% url 'view_profile' org.username %}" class="btn btn-sm btn-outline-secondary w-50">👤 View Profile</a>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-info text-center">
+      You’re not following any work users yet! Explore and connect on the event discovery page. 🐝
+    </div>
+  {% endif %}
+
+  <div class="text-center mt-5">
+    <a href="{% url 'account' %}" class="btn btn-outline-dark">← Back to Profile</a>
+  </div>
+</div>
+{% endblock %}

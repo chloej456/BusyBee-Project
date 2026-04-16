@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block title %}Work Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+
+    <!-- Welcome Header -->
+    <div class="text-center mb-5">
+        <h1 class="display-4 fw-bold text-gradient">Welcome Back!</h1>
+        <p class="lead text-muted">Create, manage, and preview your events with ease.</p>
+        <hr class="my-4">
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row text-center mb-5">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-lg border-0 hover-scale">
+                <div class="card-body">
+                    <h5 class="card-title">➕ <span class="fw-bold">Create Event</span></h5>
+                    <p class="text-muted">Launch a new Work Event fast.</p>
+                    <a href="{% url 'create_work_event' %}" class="btn btn-lg btn-purple shadow-sm">Create</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-lg border-0 hover-scale">
+                <div class="card-body">
+                    <h5 class="card-title">📅 <span class="fw-bold">Events</span></h5>
+                    <p class="text-muted">View and manage events you’ve created.</p>
+                    <a href="{% url 'my_work_events' %}" class="btn btn-lg btn-outline-dark">View Events</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-lg border-0 hover-scale">
+                <div class="card-body">
+                    <h5 class="card-title">⚙️ <span class="fw-bold">Edit Profile</span></h5>
+                    <p class="text-muted">Update your work profile and preferences.</p>
+                    <a href="{% url 'edit_profile' %}" class="btn btn-lg btn-outline-secondary">Edit</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Dashboard Main Layout -->
+<div class="row gy-4 mb-5">
+    <!-- Events Column -->
+    <div class="col-lg-8">
+      <div class="card shadow-lg border-0 rounded-4 p-4 bg-white">
+  
+        <h2 class="fw-bold mb-4 text-dark-emphasis">📌 Events</h2>
+  
+        <!-- Tabs -->
+        <ul class="nav nav-tabs nav-fill rounded bg-light px-2 mb-4" id="eventTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-semibold" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming" type="button" role="tab">
+              ⏳ Upcoming
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="past-tab" data-bs-toggle="tab" data-bs-target="#past" type="button" role="tab">
+              🕓 Past
+            </button>
+          </li>
+        </ul>
+  
+        <!-- Tab Content -->
+        <div class="tab-content" id="eventTabsContent">
+          <!-- Upcoming Events -->
+          <div class="tab-pane fade show active" id="upcoming" role="tabpanel">
+            {% if upcoming_events %}
+              <div class="list-group">
+                {% for event in upcoming_events %}
+                  <a href="{% url 'work_event_details' event.id %}" class="list-group-item list-group-item-action rounded-3 shadow-sm mb-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <div>
+                        <h5 class="fw-bold text-primary mb-1">{{ event.title }}</h5>
+                        <p class="text-muted small mb-0">{{ event.description|truncatewords:15 }}</p>
+                      </div>
+                      <small class="text-muted text-end mt-1">
+                        {{ event.all_day_start|default:event.timed_start|date:"M d, Y" }}
+                      </small>
+                    </div>
+                    <div class="mt-2">
+                      {% with event.timed_start as start_time %}
+                        <small class="text-secondary fw-medium">
+                          🕒 Starts in: <span class="countdown-timer" data-start-time="{{ start_time|date:"c" }}"></span>
+                        </small>
+                      {% endwith %}
+                    </div>
+                  </a>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="text-muted">No upcoming events yet.</p>
+            {% endif %}
+          </div>
+  
+          <!-- Past Events -->
+          <div class="tab-pane fade" id="past" role="tabpanel">
+            {% if past_events %}
+              <div class="list-group">
+                {% for event in past_events %}
+                  <a href="{% url 'work_event_details' event.id %}" class="list-group-item list-group-item-action rounded-3 shadow-sm mb-3">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <h5 class="fw-bold text-secondary">{{ event.title }}</h5>
+                        <p class="text-muted small mb-1">{{ event.description|truncatewords:15 }}</p>
+                        <small class="text-muted">Status: {{ event.status }}</small>
+                      </div>
+                      <small class="text-muted">{{ event.date|date:"M d, Y" }}</small>
+                    </div>
+                  </a>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="text-muted">No past events found.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Profile Column -->
+<div class="col-lg-4">
+    <div class="card shadow-lg border-0 rounded-4 p-4 bg-white h-100 d-flex flex-column justify-content-between">
+      <div>
+        <div class="d-flex align-items-center mb-3">
+          <i class="bi bi-person-fill fs-3 me-2 text-purple"></i>
+          <h4 class="fw-bold mb-0">Your Profile Overview</h4>
+        </div>
+  
+        <hr class="mb-4">
+  
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="d-flex align-items-center text-muted">
+            <i class="bi bi-people-fill me-2 fs-5 text-secondary"></i>
+            <span class="fw-medium">Followers</span>
+          </div>
+          <span class="fw-bold fs-5 text-primary">{{ follower_count }}</span>
+        </div>
+  
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center text-muted">
+            <i class="bi bi-calendar-event-fill me-2 fs-5 text-secondary"></i>
+            <span class="fw-medium">Events Hosted</span>
+          </div>
+          <span class="fw-bold fs-5 text-success">{{ total_events }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+  
+
+<!-- Tip -->
+<div class="alert alert-info shadow-sm mt-4" role="alert">
+    💡 <strong>Tip:</strong> Promote your events on social and in-app to boost attendance.
+</div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        function updateCountdowns() {
+            const now = new Date().getTime();
+    
+            document.querySelectorAll('.countdown-timer').forEach(timer => {
+                const startStr = timer.dataset.startTime;
+                if (!startStr) return;
+    
+                const targetTime = new Date(startStr).getTime();
+                const distance = targetTime - now;
+    
+                if (distance <= 0) {
+                    timer.innerText = "Started";
+                    return;
+                }
+    
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+    
+                timer.innerText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+            });
+        }
+    
+        updateCountdowns();
+        setInterval(updateCountdowns, 1000);
+    });
+    </script>
+    
+{% endblock %}

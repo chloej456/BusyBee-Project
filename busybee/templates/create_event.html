@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}Create Event{% endblock %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container">
+    <div class="card shadow-lg border-0 rounded-4">
+      <div class="card-body p-5">
+        <h2 class="mb-4 text-center">📆 Create an Event</h2>
+        <p class="text-muted text-center mb-4">Fill in the details below to schedule your event.</p>
+
+        <form method="POST" novalidate>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              {% for error in form.non_field_errors %}
+                <p>{{ error }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="row g-4">
+            <!-- Title -->
+            <div class="col-md-6">
+              <label class="form-label">Title</label>
+              {{ form.title|add_class:"form-control" }}
+              {% if form.title.errors %}
+                <div class="text-danger small">{{ form.title.errors }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Location -->
+            <div class="col-md-6">
+              <label class="form-label">Location</label>
+              {{ form.location|add_class:"form-control" }}
+              {% if form.location.errors %}
+                <div class="text-danger small">{{ form.location.errors }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Privacy -->
+            <div class="col-md-12">
+              <div class="form-check">
+                {{ form.is_private|add_class:"form-check-input" }}
+                <label class="form-check-label" for="{{ form.is_private.id_for_label }}">
+                  {{ form.is_private.label }}
+                </label>
+              </div>
+            </div>
+
+            <!-- Event Type -->
+            <div class="col-md-12">
+              <label class="form-label fw-semibold">🕒 Event Type</label>
+              <div class="d-flex gap-4">
+                {% for radio in form.event_type %}
+                  <div class="form-check">
+                    {{ radio.tag }}
+                    <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                  </div>
+                {% endfor %}
+              </div>
+              {% if form.event_type.errors %}
+                <div class="text-danger small">{{ form.event_type.errors }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Timed Fields -->
+            <div id="timed_fields" class="col-12 row g-3" style="display: none;">
+              <div class="col-md-6">
+                <label class="form-label">Start Time</label>
+                {{ form.timed_start|add_class:"form-control" }}
+                {% if form.timed_start.errors %}
+                  <div class="text-danger small">{{ form.timed_start.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">End Time</label>
+                {{ form.timed_end|add_class:"form-control" }}
+                {% if form.timed_end.errors %}
+                  <div class="text-danger small">{{ form.timed_end.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- All-Day Fields -->
+            <div id="all_day_fields" class="col-12 row g-3" style="display: none;">
+              <div class="col-md-6">
+                <label class="form-label">Start Date</label>
+                {{ form.all_day_start|add_class:"form-control" }}
+                {% if form.all_day_start.errors %}
+                  <div class="text-danger small">{{ form.all_day_start.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">End Date</label>
+                {{ form.all_day_end|add_class:"form-control" }}
+                {% if form.all_day_end.errors %}
+                  <div class="text-danger small">{{ form.all_day_end.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Repeat Fields -->
+            <div class="col-md-6">
+              <label class="form-label">Repeat</label>
+              {{ form.repeat_frequency|add_class:"form-select" }}
+              {% if form.repeat_frequency.errors %}
+                <div class="text-danger small">{{ form.repeat_frequency.errors }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Repeat End Date -->
+            <div class="col-md-6">
+              <label class="form-label">Repeat End Date</label>
+              {{ form.repeat_end_date|add_class:"form-control" }}
+              {% if form.repeat_end_date.errors %}
+                <div class="text-danger small">{{ form.repeat_end_date.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Invite Friends Section -->
+          <div class="col-md-12">
+            <label class="form-label">Invite Friends</label>
+            <div class="form-check">
+              {% for friend in friends_list %}
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="invited_friends" value="{{ friend.id }}" id="friend_{{ friend.id }}">
+                  <label class="form-check-label" for="friend_{{ friend.id }}">
+                    {{ friend.username }}
+                  </label>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="text-center mt-4">
+            <button type="submit" class="button px-4 py-2">Save Event</button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- JS to toggle field visibility -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const eventTypeRadios = document.getElementsByName("event_type");
+    const timedFields = document.getElementById("timed_fields");
+    const allDayFields = document.getElementById("all_day_fields");
+
+    function toggleFields() {
+      let selected = document.querySelector('input[name="event_type"]:checked');
+      if (!selected) return;
+
+      if (selected.value === "timed") {
+        timedFields.style.display = "flex";
+        allDayFields.style.display = "none";
+      } else if (selected.value === "all_day") {
+        timedFields.style.display = "none";
+        allDayFields.style.display = "flex";
+      }
+    }
+
+    eventTypeRadios.forEach(radio => {
+      radio.addEventListener("change", toggleFields);
+    });
+
+    toggleFields(); // initial load
+  });
+</script>
+
+<!--hides/shows repeat end date-->
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const repeatFrequency = document.querySelector('[name="repeat_frequency"]');
+    const repeatEndDateField = document.querySelector('[name="repeat_end_date"]').closest('.col-md-6');
+
+    function toggleRepeatEndDate() {
+      if (repeatFrequency.value === "none") {
+        repeatEndDateField.style.display = "none";
+      } else {
+        repeatEndDateField.style.display = "block";
+      }
+    }
+
+    repeatFrequency.addEventListener("change", toggleRepeatEndDate);
+
+    toggleRepeatEndDate(); // initial load
+  });
+</script>
+
+
+{% endblock %}
